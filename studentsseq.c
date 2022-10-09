@@ -3,104 +3,103 @@
 #include <math.h>
  
 // M × N × O matrix
-#define M 3
-#define N 4
-#define O 6
+#define R 3
+#define C 4
+#define A 6
 
-int menor(int *** A, int row, int col)
+int minimum(int *** mat, int row, int col)
 {
-  int menor_num = 9999;
+  int min = 9999;
 
-    for (int k = 0; k < O; k++) 
+    for (int k = 0; k < A; k++) 
     {
-      if(A[row][col][k] < menor_num) 
-      {
-        menor_num = A[row][col][k];
-      }
+      if(mat[row][col][k] < min) 
+        min = mat[row][col][k];
     }
 
-  return menor_num;
+  return min;
 }
 
-int maior(int *** A, int row, int col)
+int maximum(int *** mat, int row, int col)
 {
-  int maior_num = -1;
+  int max = -1;
 
-    for (int k = 0; k < O; k++) 
+    for (int k = 0; k < A; k++) 
     {
-      if(A[row][col][k] > maior_num) 
-      {
-        maior_num = A[row][col][k];
-      }
+      if(mat[row][col][k] > max) 
+        max = mat[row][col][k];
     }
 
-  return maior_num;
+  return max;
 }
 
-double mediana(int *** A, int row, int col)
+double median(int *** mat, int row, int col)
 {
   double sum = 0;
 
-    for (int k = 0; k < O; k++) 
+    for (int k = 0; k < A; k++) 
     {
-      sum += A[row][col][k];
+      sum += mat[row][col][k];
     }
 
-  return sum/O;
+  return sum/A;
 }
 
-double media(int *** A, int row, int col)
+double mean(int *** mat, int row, int col)
 {
   double sum = 0;
 
-    for (int k = 0; k < O; k++) 
+    for (int k = 0; k < A; k++) 
     {
-      sum += A[row][col][k];
+      sum += mat[row][col][k];
     }
 
-  return sum/O;
+  return sum/A;
 }
 
-double calculateSD(int *** A, int row, int col) 
+double standardDeviation(int *** mat, int row, int col) 
 {
-    double sum = 0.0, mean, SD = 0.0;
-    for (int k = 0; k < O; k++) 
+  double sum = 0.0, mean, SD = 0.0;
+  
+  for (int k = 0; k < A; k++) 
     {
-      sum += A[row][col][k];
+      sum += mat[row][col][k];
     }
-    mean = sum / O;
-    for (int k = 0; k < O; k++) 
+  
+  mean = sum / A;
+  
+  for (int k = 0; k < A; k++) 
     {
-      SD += pow(A[row][col][k] - mean, 2);
+      SD += pow(mat[row][col][k] - mean, 2);
     }
-    return sqrt(SD / (O-1));
+  
+  return sqrt(SD / (A-1));
 }
- 
-// Dynamically allocate memory for 3D Array
+
 int main(void)
 {
-    int*** A = (int***)malloc(M * sizeof(int**));
+    int*** mat = (int***)malloc(R * sizeof(int**));
  
-    if (A == NULL)
+    if (mat == NULL)
     {
         fprintf(stderr, "Out of memory");
         exit(0);
     }
  
-    for (int i = 0; i < M; i++)
+    for (int i = 0; i < R; i++)
     {
-        A[i] = (int**)malloc(N * sizeof(int*));
+        mat[i] = (int**)malloc(C * sizeof(int*));
  
-        if (A[i] == NULL)
+        if (mat[i] == NULL)
         {
             fprintf(stderr, "Out of memory");
             exit(0);
         }
  
-        for (int j = 0; j < N; j++)
+        for (int j = 0; j < C; j++)
         {
-            A[i][j] = (int*)malloc(O * sizeof(int));
-            if (A[i][j] == NULL)
+            mat[i][j] = (int*)malloc(A * sizeof(int));
+            if (mat[i][j] == NULL)
             {
                 fprintf(stderr, "Out of memory");
                 exit(0);
@@ -110,24 +109,24 @@ int main(void)
  
     srand(7);
     // assign values to the allocated memory
-    for (int i = 0; i < M; i++)
+    for (int i = 0; i < R; i++)
     {
-        for (int j = 0; j < N; j++)
+        for (int j = 0; j < C; j++)
         {
-            for (int k = 0; k < O; k++) 
+            for (int k = 0; k < A; k++) 
             {
-                A[i][j][k] = rand() % 101;
+                mat[i][j][k] = rand() % 101;
             }
         }
     }
 
     // print the 3D array
-    for (int i = 0; i < M; i++)
+    for (int i = 0; i < R; i++)
     {
-        for (int j = 0; j < N; j++)
+        for (int j = 0; j < C; j++)
         {
-            for (int k = 0; k < O; k++) {
-                printf("%d ", A[i][j][k]);
+            for (int k = 0; k < A; k++) {
+                printf("%d ", mat[i][j][k]);
             }
             printf("\n");
         }
@@ -135,13 +134,13 @@ int main(void)
     }
  
     // print custom the 3D array
-    for (int i = 0; i < M; i++)
+    for (int i = 0; i < R; i++)
     {
-        for (int j = 0; j < N; j++)
+        for (int j = 0; j < C; j++)
         {
-            for (int k = 0; k < O; k++) 
+            for (int k = 0; k < A; k++) 
             {
-                if(k==0) printf("Reg %d - Cid %d: menor: %d, maior: %d, mediana: %.2lf, media: %.2lf e DP: %.2lf", i, j, menor(A, i, j), maior(A, i, j), mediana(A, i, j), media(A, i, j), calculateSD(A, i, j));
+                if(k==0) printf("Reg %d - Cid %d: menor: %d, maior: %d, mediana: %.2lf, media: %.2lf e DP: %.2lf", i, j, minimum(mat, i, j), maximum(mat, i, j), median(mat, i, j), mean(mat, i, j), standardDeviation(mat, i, j));
             }
             printf("\n");
         }
@@ -149,14 +148,14 @@ int main(void)
     }
  
     // deallocate memory
-    for (int i = 0; i < M; i++)
+    for (int i = 0; i < R; i++)
     {
-        for (int j = 0; j < N; j++) {
-            free(A[i][j]);
+        for (int j = 0; j < C; j++) {
+            free(mat[i][j]);
         }
-        free(A[i]);
+        free(mat[i]);
     }
-    free(A);
+    free(mat);
  
     return 0;
 }

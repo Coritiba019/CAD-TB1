@@ -2,10 +2,11 @@
 #include <stdlib.h>
 #include <math.h>
  
-// M × N × O matrix
+// R × C × A matrix
 #define R 3
 #define C 4
 #define A 6
+#define SEED 7
 
 int minimum(int *** mat, int row, int col)
 {
@@ -107,7 +108,7 @@ int main(void)
         }
     }
  
-    srand(7);
+    srand(SEED);
     // assign values to the allocated memory
     for (int i = 0; i < R; i++)
     {

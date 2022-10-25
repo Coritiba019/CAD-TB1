@@ -1,105 +1,104 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
- 
+
 // R × C × A matrix
-#define R 3
-#define C 4
-#define A 6
-#define SEED 7
+int R, C, A, SEED;
 
-int minimum(int *** mat, int row, int col)
+int minimum(int ***mat, int row, int col)
 {
-  int min = 9999;
+    int min = 9999;
 
-    for (int k = 0; k < A; k++) 
+    for (int k = 0; k < A; k++)
     {
-      if(mat[row][col][k] < min) 
-        min = mat[row][col][k];
+        if (mat[row][col][k] < min)
+            min = mat[row][col][k];
     }
 
-  return min;
+    return min;
 }
 
-int maximum(int *** mat, int row, int col)
+int maximum(int ***mat, int row, int col)
 {
-  int max = -1;
+    int max = -1;
 
-    for (int k = 0; k < A; k++) 
+    for (int k = 0; k < A; k++)
     {
-      if(mat[row][col][k] > max) 
-        max = mat[row][col][k];
+        if (mat[row][col][k] > max)
+            max = mat[row][col][k];
     }
 
-  return max;
+    return max;
 }
 
-double median(int *** mat, int row, int col)
+double median(int ***mat, int row, int col)
 {
-  double sum = 0;
+    double sum = 0;
 
-    for (int k = 0; k < A; k++) 
+    for (int k = 0; k < A; k++)
     {
-      sum += mat[row][col][k];
+        sum += mat[row][col][k];
     }
 
-  return sum/A;
+    return sum / A;
 }
 
-double mean(int *** mat, int row, int col)
+double mean(int ***mat, int row, int col)
 {
-  double sum = 0;
+    double sum = 0;
 
-    for (int k = 0; k < A; k++) 
+    for (int k = 0; k < A; k++)
     {
-      sum += mat[row][col][k];
+        sum += mat[row][col][k];
     }
 
-  return sum/A;
+    return sum / A;
 }
 
-double standardDeviation(int *** mat, int row, int col) 
+double standardDeviation(int ***mat, int row, int col)
 {
-  double sum = 0.0, mean, SD = 0.0;
-  
-  for (int k = 0; k < A; k++) 
+    double sum = 0.0, mean, SD = 0.0;
+
+    for (int k = 0; k < A; k++)
     {
-      sum += mat[row][col][k];
+        sum += mat[row][col][k];
     }
-  
-  mean = sum / A;
-  
-  for (int k = 0; k < A; k++) 
+
+    mean = sum / A;
+
+    for (int k = 0; k < A; k++)
     {
-      SD += pow(mat[row][col][k] - mean, 2);
+        SD += pow(mat[row][col][k] - mean, 2);
     }
-  
-  return sqrt(SD / (A-1));
+
+    return sqrt(SD / (A - 1));
 }
 
 int main(void)
 {
-    int*** mat = (int***)malloc(R * sizeof(int**));
- 
+    scanf("%d %d %d %d", &R, &C, &A, &SEED);
+
+    int ***mat = (int ***)malloc(R * sizeof(int **));
+
     if (mat == NULL)
     {
         fprintf(stderr, "Out of memory");
         exit(0);
     }
- 
+
     for (int i = 0; i < R; i++)
     {
-        mat[i] = (int**)malloc(C * sizeof(int*));
- 
+        mat[i] = (int **)malloc(C * sizeof(int *));
+
         if (mat[i] == NULL)
         {
             fprintf(stderr, "Out of memory");
             exit(0);
         }
- 
+
         for (int j = 0; j < C; j++)
         {
-            mat[i][j] = (int*)malloc(A * sizeof(int));
+            mat[i][j] = (int *)malloc(A * sizeof(int));
             if (mat[i][j] == NULL)
             {
                 fprintf(stderr, "Out of memory");
@@ -107,14 +106,14 @@ int main(void)
             }
         }
     }
- 
+
     srand(SEED);
     // assign values to the allocated memory
     for (int i = 0; i < R; i++)
     {
         for (int j = 0; j < C; j++)
         {
-            for (int k = 0; k < A; k++) 
+            for (int k = 0; k < A; k++)
             {
                 mat[i][j][k] = rand() % 101;
             }
@@ -126,37 +125,42 @@ int main(void)
     {
         for (int j = 0; j < C; j++)
         {
-            for (int k = 0; k < A; k++) {
-                printf("%d ", mat[i][j][k]);
+            for (int k = 0; k < A; k++)
+            {
+                printf(" %3d ", mat[i][j][k]);
             }
             printf("\n");
         }
         printf("\n");
     }
- 
+
     // print custom the 3D array
     for (int i = 0; i < R; i++)
     {
         for (int j = 0; j < C; j++)
         {
-            for (int k = 0; k < A; k++) 
+            for (int k = 0; k < A; k++)
             {
-                if(k==0) printf("Reg %d - Cid %d: menor: %d, maior: %d, mediana: %.2lf, media: %.2lf e DP: %.2lf", i, j, minimum(mat, i, j), maximum(mat, i, j), median(mat, i, j), mean(mat, i, j), standardDeviation(mat, i, j));
+                if (k == 0)
+                    printf("Reg %d - Cid %d: menor: %2d, maior: %3d, mediana: %.2lf, media: %.2lf e DP: %.2lf", i, j,
+                           minimum(mat, i, j), maximum(mat, i, j), median(mat, i, j), mean(mat, i, j),
+                           standardDeviation(mat, i, j));
             }
             printf("\n");
         }
         printf("\n");
     }
- 
+
     // deallocate memory
     for (int i = 0; i < R; i++)
     {
-        for (int j = 0; j < C; j++) {
+        for (int j = 0; j < C; j++)
+        {
             free(mat[i][j]);
         }
         free(mat[i]);
     }
     free(mat);
- 
+
     return 0;
 }

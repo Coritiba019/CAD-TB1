@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// omp is included JUST to use omp_get_wtime
+// and have consistency between the two programs.
+#include <omp.h>
+
 // R × C × A matrix
 int R, C, A, SEED;
 
@@ -179,13 +183,84 @@ void free3dMatrix(int ***mat)
     free(mat);
 }
 
+int *randomFreqArray()
+{
+    srand(omp_get_wtime());
+    int *freqArr = malloc(sizeof(int) * 101);
+    for (int i = 0; i <= 100; i++)
+        freqArr[i] = rand() % 100;
+    return freqArr;
+}
+
+double meanFreqArray(int *freqArr, long long numberOfStudents)
+{
+    double sum = 0;
+    for (int i = 0; i <= 100; i++)
+    {
+        sum += freqArr[i] * i;
+    }
+    double mean = sum / numberOfStudents;
+    return mean;
+}
+
+double sdFreqArray(int *freq, double mean)
+{
+    // todo
+}
+
+int maxFreqArray(int *freqArr)
+{
+    for (int i = 100; i >= 0; i--)
+    {
+        if (freqArr[i] != 0)
+        {
+            return i;
+        }
+    }
+    fprintf(stderr, "Frequency array is empty");
+    exit(0);
+}
+
+int minFreqArray(int *freqArr)
+{
+    for (int i = 0; i <= 100; i++)
+    {
+        if (freqArr[i] != 0)
+        {
+            return i;
+        }
+    }
+    fprintf(stderr, "Frequency array is empty");
+    exit(0);
+}
+
+int medianFreqArray(int *freqArr, long long numberOfStudents)
+{
+    // Calculate the number of students in the frequency array
+    long long currentNumberOfStudents = 0;
+    for (int i = 0; i <= 100; i++)
+    {
+        currentNumberOfStudents += freqArr[i];
+        if (currentNumberOfStudents * 2 >= numberOfStudents)
+        {
+            return i;
+        }
+    }
+}
+
 int main(void)
 {
     readConstraints(&R, &C, &A, &SEED);
     int ***mat = alloc_3d_matrix();
     populateMatrix(mat);
     print3dMatrix(mat);
+    double tic = omp_get_wtime();
     printStats(mat);
+    double toc = omp_get_wtime();
+    // TODO: Shouldn't count time printing
+    printf("Time elapsed: %fs\n", toc - tic);
+    double meanc = meanFreqArray(randomFreqArray(), 1000);
+    printf("mean: %f\n", meanc);
     free(mat);
     return 0;
 }

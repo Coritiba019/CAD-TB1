@@ -5,6 +5,11 @@
 // R × C × A matrix
 int R, C, A, SEED;
 
+void readConstraints(int *pR, int *pC, int *pA, int *pSEED)
+{
+    scanf("%d %d %d %d", pR, pC, pA, pSEED);
+}
+
 int minimum(int ***mat, int row, int col)
 {
     int min = 9999;
@@ -74,10 +79,8 @@ double standardDeviation(int ***mat, int row, int col)
     return sqrt(SD / (A - 1));
 }
 
-int main(void)
+int ***alloc_3d_matrix()
 {
-    scanf("%d %d %d %d", &R, &C, &A, &SEED);
-
     int ***mat = (int ***)malloc(R * sizeof(int **));
 
     if (mat == NULL)
@@ -106,7 +109,11 @@ int main(void)
             }
         }
     }
+    return mat;
+}
 
+void populateMatrix(int ***mat)
+{
     srand(SEED);
     // assign values to the allocated memory
     for (int i = 0; i < R; i++)
@@ -119,7 +126,10 @@ int main(void)
             }
         }
     }
+}
 
+void print3dMatrix(int ***mat)
+{
     // print the 3D array
     for (int i = 0; i < R; i++)
     {
@@ -133,7 +143,10 @@ int main(void)
         }
         printf("\n");
     }
+}
 
+void printStats(int ***mat)
+{
     // print custom the 3D array
     for (int i = 0; i < R; i++)
     {
@@ -150,7 +163,10 @@ int main(void)
         }
         printf("\n");
     }
+}
 
+void free3dMatrix(int ***mat)
+{
     // deallocate memory
     for (int i = 0; i < R; i++)
     {
@@ -161,6 +177,15 @@ int main(void)
         free(mat[i]);
     }
     free(mat);
+}
 
+int main(void)
+{
+    readConstraints(&R, &C, &A, &SEED);
+    int ***mat = alloc_3d_matrix();
+    populateMatrix(mat);
+    print3dMatrix(mat);
+    printStats(mat);
+    free(mat);
     return 0;
 }

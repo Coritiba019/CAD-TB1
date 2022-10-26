@@ -1,7 +1,7 @@
 CC=gcc
 LD=gcc
 
-CFLAGS= -Wall -Wextra -Werror -pedantic -O0
+CFLAGS= -Wall -Wextra -Werror -pedantic -O0 -std=c99 
 LDLIBS=-lm -fopenmp
 DLDFLAGS=-g
 LDFLAGS=

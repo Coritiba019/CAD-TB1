@@ -65,9 +65,7 @@ void ***alloc3dMatrix(int32_t x, int32_t y, int32_t z, size_t elemSize) {
     return mat;
 }
 
-void populateMatrix(int32_t ***matrix, int32_t R, int32_t C, int32_t A,
-                    int32_t SEED) {
-    srand(SEED);
+void populateMatrix(int32_t ***matrix, int32_t R, int32_t C, int32_t A) {
     // assign values to the allocated memory
     for (int32_t i = 0; i < R; i++) {
         for (int32_t j = 0; j < C; j++) {
@@ -311,9 +309,12 @@ int main(void) {
     int32_t R, C, A, SEED;
     double timeStart, timeEnd;
     readConstraints(&R, &C, &A, &SEED);
+
+    srand(SEED);
+
     int32_t ***infoMatrix =
         (int32_t ***)alloc3dMatrix(R, C, A, sizeof(int32_t));
-    populateMatrix(infoMatrix, R, C, A, SEED);
+    populateMatrix(infoMatrix, R, C, A);
     // print3dMatrix(infoMatrix, R, C, A);
 
     timeStart = omp_get_wtime();

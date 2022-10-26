@@ -26,73 +26,6 @@ void readConstraints(int32_t *pR, int32_t *pC, int32_t *pA, int32_t *pSEED) {
     scanf(" %d %d %d %d", pR, pC, pA, pSEED);
 }
 
-int32_t minimum(int32_t ***matrix, int32_t row, int32_t col, int32_t A) {
-    int32_t min = MAX_GRADE + 1;
-
-    for (int32_t k = 0; k < A; k++) {
-        if (matrix[row][col][k] < min)
-            min = matrix[row][col][k];
-    }
-
-    return min;
-}
-
-int32_t maximum(int32_t ***matrix, int32_t row, int32_t col, int32_t A) {
-    int32_t max = -1;
-
-    for (int32_t k = 0; k < A; k++) {
-        if (matrix[row][col][k] > max)
-            max = matrix[row][col][k];
-    }
-
-    return max;
-}
-
-int compare(const void *a, const void *b) {
-    return (*(int32_t *)a - *(int32_t *)b);
-}
-
-double median(int32_t ***matrix, int32_t row, int32_t col, int32_t A) {
-
-    int32_t *grades = matrix[row][col];
-
-    // Sort the grades
-    qsort(grades, A, sizeof(int32_t),
-          (int (*)(const void *, const void *)) & compare);
-
-    if (A % 2 == 0) {
-        return (grades[A / 2] + grades[(A - 1) / 2]) / 2.0;
-    }
-    return grades[A / 2];
-}
-
-double mean(int32_t ***matrix, int32_t row, int32_t col, int32_t A) {
-    double sum = 0;
-
-    for (int32_t k = 0; k < A; k++) {
-        sum += matrix[row][col][k];
-    }
-
-    return sum / A;
-}
-
-double standardDeviation(int32_t ***matrix, int32_t row, int32_t col,
-                         int32_t A) {
-    double sum = 0.0, mean, SD = 0.0;
-
-    for (int32_t k = 0; k < A; k++) {
-        sum += matrix[row][col][k];
-    }
-
-    mean = sum / A;
-
-    for (int32_t k = 0; k < A; k++) {
-        SD += pow(matrix[row][col][k] - mean, 2);
-    }
-
-    return sqrt(SD / (A - 1));
-}
-
 void *alloc1dMatrix(int32_t x, size_t elemSize) {
     void *mat = (void *)calloc(x, elemSize);
 
@@ -158,26 +91,6 @@ void print3dMatrix(int32_t ***mat, int32_t R, int32_t C, int32_t A) {
     }
 }
 
-void printStatsOld(int32_t ***infoMatrix, int32_t R, int32_t C, int32_t A) {
-    // print custom the 3D array
-    for (int32_t i = 0; i < R; i++) {
-        for (int32_t j = 0; j < C; j++) {
-            for (int32_t k = 0; k < A; k++) {
-                if (k == 0)
-                    printf("Reg %d - Cid %d: menor: %d, maior: %d, mediana: "
-                           "%.2lf, média: %.2lf e DP: %.2lf",
-                           i, j, minimum(infoMatrix, i, j, A),
-                           maximum(infoMatrix, i, j, A),
-                           median(infoMatrix, i, j, A),
-                           mean(infoMatrix, i, j, A),
-                           standardDeviation(infoMatrix, i, j, A));
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }
-}
-
 void free2dMatrix(void **mat, int32_t x) {
     for (int32_t i = 0; i < x; i++) {
         free(mat[i]);
@@ -202,7 +115,7 @@ double meanFreqArray(int64_t *freqArr, int64_t n) {
     return sum / n;
 }
 
-double sdFreqArray(int64_t *freq, double mean, int64_t n) {
+double stdDevFreqArray(int64_t *freq, double mean, int64_t n) {
     double sum = 0;
 
     for (int32_t i = 0; i <= MAX_GRADE; i++) {
@@ -256,28 +169,54 @@ double medianFreqArray(int64_t *freqArr, int64_t n) {
     return n % 2 == 0 ? (botMidGrade + topMidGrade) / 2.0 : (double)topMidGrade;
 }
 
-void calculateFreqArray(int32_t ***infoMatrix, int32_t R, int32_t C, int32_t A,
-                        int64_t ****cityFreqArray, int64_t ***regFreqArray,
-                        int64_t **countryFreqArray) {
+int64_t ***calculateCityFreqArray(int32_t ***infoMatrix, int32_t R, int32_t C,
+                                  int32_t A) {
 
-    *cityFreqArray =
+    int64_t ***cityFreqArray =
         (int64_t ***)alloc3dMatrix(R, C, MAX_GRADE + 1, sizeof(int64_t));
-    *regFreqArray =
-        (int64_t **)alloc2dMatrix(R, MAX_GRADE + 1, sizeof(int64_t));
-    *countryFreqArray =
-        (int64_t *)alloc1dMatrix(MAX_GRADE + 1, sizeof(int64_t));
+
     int32_t grade;
 
     for (int32_t reg = 0; reg < R; reg++) {
         for (int32_t city = 0; city < C; city++) {
             for (int32_t student = 0; student < A; student++) {
                 grade = infoMatrix[reg][city][student];
-                (*cityFreqArray)[reg][city][grade]++;
-                (*regFreqArray)[reg][grade]++;
-                (*countryFreqArray)[grade]++;
+                cityFreqArray[reg][city][grade]++;
             }
         }
     }
+
+    return cityFreqArray;
+}
+
+int64_t **calculateRegionFreqArray(int64_t ***cityFreqArray, int32_t R,
+                                   int32_t C) {
+
+    int64_t **regionFreqArray =
+        (int64_t **)alloc2dMatrix(R, MAX_GRADE + 1, sizeof(int64_t));
+
+    for (int32_t reg = 0; reg < R; reg++) {
+        for (int32_t city = 0; city < C; city++) {
+            for (int32_t grade = 0; grade <= MAX_GRADE; grade++) {
+                regionFreqArray[reg][grade] += cityFreqArray[reg][city][grade];
+            }
+        }
+    }
+
+    return regionFreqArray;
+}
+
+int64_t *calculateCountryFreqArray(int64_t **regionFreqArray, int32_t R) {
+
+    int64_t *countryFreqArray = alloc1dMatrix(MAX_GRADE + 1, sizeof(int64_t));
+
+    for (int32_t reg = 0; reg < R; reg++) {
+        for (int32_t grade = 0; grade <= MAX_GRADE; grade++) {
+            countryFreqArray[grade] += regionFreqArray[reg][grade];
+        }
+    }
+
+    return countryFreqArray;
 }
 
 stats *getStatFromFreqArray(int64_t *freqArr, int32_t n) {
@@ -288,7 +227,7 @@ stats *getStatFromFreqArray(int64_t *freqArr, int32_t n) {
     }
 
     stat->mean = meanFreqArray(freqArr, n);
-    stat->stddev = sdFreqArray(freqArr, stat->mean, n);
+    stat->stddev = stdDevFreqArray(freqArr, stat->mean, n);
     stat->max = maxFreqArray(freqArr);
     stat->min = minFreqArray(freqArr);
     stat->median = medianFreqArray(freqArr, n);
@@ -351,7 +290,7 @@ void printStats(stats **stats, int32_t R, int32_t C) {
 
     for (int32_t i = 0; i < R; i++) {
         printf("Reg %d: menor: %d, maior: %d, mediana: %.2lf, média: "
-               "%lf e DP: %.2lf\n",
+               "%.2lf e DP: %.2lf\n",
                stats[idx]->region, stats[idx]->min, stats[idx]->max,
                stats[idx]->median, stats[idx]->mean, stats[idx]->stddev);
 
@@ -375,25 +314,17 @@ int main(void) {
     int32_t ***infoMatrix =
         (int32_t ***)alloc3dMatrix(R, C, A, sizeof(int32_t));
     populateMatrix(infoMatrix, R, C, A, SEED);
-    print3dMatrix(infoMatrix, R, C, A);
-    timeStart = omp_get_wtime();
-    printStatsOld(infoMatrix, R, C, A);
-    timeEnd = omp_get_wtime();
-
-    printf("Tempo de resposta sem considerar E/S, em segundos: %lfs\n",
-           timeEnd - timeStart);
-
-    printf("========================================\n");
+    // print3dMatrix(infoMatrix, R, C, A);
 
     timeStart = omp_get_wtime();
-    int64_t ***cityFreqArray;
-    int64_t **regFreqArray;
-    int64_t *countryFreqArray;
     stats *bestCity = NULL;
     stats *bestReg = NULL;
+
+    int64_t ***cityFreqArray = calculateCityFreqArray(infoMatrix, R, C, A);
+    int64_t **regFreqArray = calculateRegionFreqArray(cityFreqArray, R, C);
+    int64_t *countryFreqArray = calculateCountryFreqArray(regFreqArray, R);
+
     stats **statsVec = alloc1dMatrix((R * C) + R + 1, sizeof(stats *));
-    calculateFreqArray(infoMatrix, R, C, A, &cityFreqArray, &regFreqArray,
-                       &countryFreqArray);
     getStats(R, C, A, cityFreqArray, regFreqArray, countryFreqArray, statsVec,
              &bestReg, &bestCity);
 

@@ -18,6 +18,11 @@ typedef struct stats {
     int32_t city;
 } stats;
 
+typedef struct maxMeanIdx {
+    double mean;
+    int64_t idx;
+} maxMeanIdx;
+
 #define flat2d(i, j, Y) ((i) * (Y) + (j))
 #define flat3d(i, j, k, Y, Z) ((i) * (Y) * (Z) + (j) * (Z) + (k))
 #define flat4d(i, j, k, l, Y, Z, W)                                            \
@@ -69,6 +74,7 @@ void print3dMatrix(int32_t *mat, int32_t R, int32_t C, int32_t A) {
 double meanFreqArray(int64_t *freqArr, int64_t n) {
     double sum = 0;
 
+#pragma omp simd reduction(+ : sum)
     for (int32_t i = 0; i <= MAX_GRADE; i++) {
         sum += freqArr[i] * i;
     }
@@ -79,8 +85,9 @@ double meanFreqArray(int64_t *freqArr, int64_t n) {
 double stdDevFreqArray(int64_t *freq, double mean, int64_t n) {
     double sum = 0;
 
+#pragma omp simd reduction(+ : sum)
     for (int32_t i = 0; i <= MAX_GRADE; i++) {
-        sum += freq[i] * pow(i - mean, 2);
+        sum += freq[i] * (i - mean) * (i - mean);
     }
 
     return sqrt(sum / (n - 1));
@@ -150,17 +157,11 @@ int64_t *calculateCityFreqArray(int32_t *infoMatrix, int32_t R, int32_t C,
             for (int32_t city = 0; city < C; city++) {
                 for (int32_t student = 0; student < A; student++) {
 
-                    // printf("reg: %d, city: %d, student: %d thread: %d\n",
-                    // reg, city,
-                    //    student, omp_get_thread_num());
-
                     int32_t grade =
                         infoMatrix[flat3d(reg, city, student, C, A)];
 
                     threadFreqArray[flat4d(tid, reg, city, grade, R, C,
                                            MAX_GRADE + 1)]++;
-                    // cityFreqArray[flat3d(reg, city, grade, C, MAX_GRADE +
-                    // 1)]++;
                 }
             }
         }
@@ -238,37 +239,64 @@ stats *getStatFromFreqArray(int64_t *freqArr, int32_t n) {
 void getStats(int32_t R, int32_t C, int32_t A, int64_t *cityFreqArray,
               int64_t *regFreqArray, int64_t *countryFreqArray,
               stats **statsVector, stats **bestReg, stats **bestCity) {
-    int32_t idx = 0;
-    for (int32_t reg = 0; reg < R; reg++) {
-        for (int32_t city = 0; city < C; city++) {
-            statsVector[idx] = getStatFromFreqArray(
+
+#pragma omp parallel for
+    for (int64_t i = 0; i < R * C + R + 1; i++) {
+        if (i < R * C) {
+            int32_t reg = i / C;
+            int32_t city = i % C;
+
+            statsVector[i] = getStatFromFreqArray(
                 &cityFreqArray[flat3d(reg, city, 0, C, MAX_GRADE + 1)], A);
-            statsVector[idx]->region = reg;
-            statsVector[idx]->city = city;
+            statsVector[i]->region = reg;
+            statsVector[i]->city = city;
 
-            if ((*bestCity) == NULL ||
-                statsVector[idx]->mean > (*bestCity)->mean) {
-                *bestCity = statsVector[idx];
-            }
+        } else if (i < R * C + R) {
+            int32_t reg = i - R * C;
 
-            idx++;
+            statsVector[i] = getStatFromFreqArray(
+                &regFreqArray[flat2d(reg, 0, MAX_GRADE + 1)], C * A);
+            statsVector[i]->region = reg;
+            statsVector[i]->city = -1;
+
+        } else {
+            statsVector[i] = getStatFromFreqArray(countryFreqArray, A * C * R);
+            statsVector[i]->region = -1;
+            statsVector[i]->city = -1;
         }
     }
-    for (int32_t reg = 0; reg < R; reg++) {
-        statsVector[idx] = getStatFromFreqArray(
-            &regFreqArray[flat2d(reg, 0, MAX_GRADE + 1)], C * A);
-        statsVector[idx]->region = reg;
-        statsVector[idx]->city = -1;
 
-        if ((*bestReg) == NULL || statsVector[idx]->mean > (*bestReg)->mean) {
-            *bestReg = statsVector[idx];
+#pragma omp declare reduction(                                                 \
+    maxMean                                                                    \
+    : struct maxMeanIdx                                                        \
+    : omp_out = omp_in.mean > omp_out.mean                                     \
+                    ? omp_in                                                   \
+                    : (omp_out.mean == omp_in.mean                             \
+                           ? omp_in.idx < omp_out.idx ? omp_in : omp_out       \
+                           : omp_out))
+
+    maxMeanIdx bestCityIdx = {-1.0, -1};
+
+#pragma omp parallel for reduction(maxMean : bestCityIdx)
+    for (int64_t i = 0; i < R * C; i++) {
+        if (statsVector[i]->mean > bestCityIdx.mean) {
+            bestCityIdx.mean = statsVector[i]->mean;
+            bestCityIdx.idx = i;
         }
-
-        idx++;
     }
-    statsVector[idx] = getStatFromFreqArray(countryFreqArray, A * C * R);
-    statsVector[idx]->region = -1;
-    statsVector[idx]->city = -1;
+
+    maxMeanIdx bestRegIdx = {-1.0, -1};
+
+#pragma omp parallel for reduction(maxMean : bestRegIdx)
+    for (int64_t i = R * C; i < R * C + R; i++) {
+        if (statsVector[i]->mean > bestRegIdx.mean) {
+            bestRegIdx.mean = statsVector[i]->mean;
+            bestRegIdx.idx = i;
+        }
+    }
+
+    *bestCity = statsVector[bestCityIdx.idx];
+    *bestReg = statsVector[bestRegIdx.idx];
 }
 
 void printStats(stats **stats, int32_t R, int32_t C) {
@@ -320,6 +348,7 @@ int main(void) {
     // print3dMatrix(infoMatrix, R, C, A);
 
     timeStart = omp_get_wtime();
+
     stats *bestCity = NULL;
     stats *bestReg = NULL;
 
@@ -335,12 +364,19 @@ int main(void) {
 
     printStats(statsVec, R, C);
 
-    printf("Melhor região: Região %d\n", bestReg->region);
-    printf("Melhor cidade: Região %d, Cidade %d\n", bestCity->region,
-           bestCity->city);
+    printf("Melhor região: Região %d Média: %lf\n", bestReg->region,
+           bestReg->mean);
+    printf("Melhor cidade: Região %d, Cidade %d Média: %lf\n", bestCity->region,
+           bestCity->city, bestCity->mean);
 
-    printf("P: Tempo de resposta sem considerar E/S, em segundos: %lfs\n",
-           timeEnd - timeStart);
+    // printf("Tempo de resposta sem considerar E/S, em segundos: %lfs\n",
+    //        timeEnd - timeStart);
+
+    FILE *timeFile = fopen("timePar", "w");
+
+    fprintf(timeFile, "%lf", timeEnd - timeStart);
+
+    fclose(timeFile);
 
     free(infoMatrix);
     free(cityFreqArray);

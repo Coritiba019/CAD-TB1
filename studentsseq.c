@@ -296,12 +296,19 @@ int main(void) {
 
     printStats(statsVec, R, C);
 
-    printf("Melhor região: Região %d\n", bestReg->region);
-    printf("Melhor cidade: Região %d, Cidade %d\n", bestCity->region,
-           bestCity->city);
+    printf("Melhor região: Região %d Média: %lf\n", bestReg->region,
+           bestReg->mean);
+    printf("Melhor cidade: Região %d, Cidade %d Média: %lf\n", bestCity->region,
+           bestCity->city, bestCity->mean);
 
-    printf("S: Tempo de resposta sem considerar E/S, em segundos: %lfs\n",
-           timeEnd - timeStart);
+    // printf("Tempo de resposta sem considerar E/S, em segundos: %lfs\n",
+    //        timeEnd - timeStart);
+
+    FILE *timeFile = fopen("timeSeq", "w");
+
+    fprintf(timeFile, "%lf", timeEnd - timeStart);
+
+    fclose(timeFile);
 
     free(infoMatrix);
     free(cityFreqArray);

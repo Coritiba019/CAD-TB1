@@ -5,3 +5,11 @@ spar
 *.o
 .vscode
 *.exe
+p
+s
+in
+outSeq
+outPar
+timeSeq
+timePar
+runs.json

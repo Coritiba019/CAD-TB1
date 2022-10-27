@@ -285,13 +285,6 @@ int main(void) {
     stats *bestReg = NULL;
 
     int64_t *cityFreqArray = calculateCityFreqArray(infoMatrix, R, C, A);
-    // for (int32_t i = 0; i < R; i++) {
-    //     for (int32_t j = 0; j < C; j++) {
-    //         for (int32_t k = 0; k <= MAX_GRADE; k++) {
-    //             printf("%ld \n", cityFreqArray[i][j][k]);
-    //         }
-    //     }
-    // }
     int64_t *regFreqArray = calculateRegionFreqArray(cityFreqArray, R, C);
     int64_t *countryFreqArray = calculateCountryFreqArray(regFreqArray, R);
 

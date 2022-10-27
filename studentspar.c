@@ -20,6 +20,8 @@ typedef struct stats {
 
 #define flat2d(i, j, Y) ((i) * (Y) + (j))
 #define flat3d(i, j, k, Y, Z) ((i) * (Y) * (Z) + (j) * (Z) + (k))
+#define flat4d(i, j, k, l, Y, Z, W)                                            \
+    ((i) * (Y) * (Z) * (W) + (j) * (Z) * (W) + (k) * (W) + (l))
 
 static const char noMemory[] = "Not enough memory available.";
 
@@ -131,19 +133,54 @@ double medianFreqArray(int64_t *freqArr, int64_t n) {
 int64_t *calculateCityFreqArray(int32_t *infoMatrix, int32_t R, int32_t C,
                                 int32_t A) {
 
+    int32_t nT = omp_get_max_threads();
+
     int64_t *cityFreqArray =
         (int64_t *)allocMatrix(R * C * (MAX_GRADE + 1), sizeof(int64_t));
 
-    int32_t grade;
+    int64_t *threadFreqArray =
+        (int64_t *)allocMatrix(nT * R * C * (MAX_GRADE + 1), sizeof(int64_t));
 
-    for (int32_t reg = 0; reg < R; reg++) {
-        for (int32_t city = 0; city < C; city++) {
-            for (int32_t student = 0; student < A; student++) {
-                grade = infoMatrix[flat3d(reg, city, student, C, A)];
-                cityFreqArray[flat3d(reg, city, grade, C, MAX_GRADE + 1)]++;
+#pragma omp parallel
+    {
+        int32_t tid = omp_get_thread_num();
+
+#pragma omp for collapse(3)
+        for (int32_t reg = 0; reg < R; reg++) {
+            for (int32_t city = 0; city < C; city++) {
+                for (int32_t student = 0; student < A; student++) {
+
+                    // printf("reg: %d, city: %d, student: %d thread: %d\n",
+                    // reg, city,
+                    //    student, omp_get_thread_num());
+
+                    int32_t grade =
+                        infoMatrix[flat3d(reg, city, student, C, A)];
+
+                    threadFreqArray[flat4d(tid, reg, city, grade, R, C,
+                                           MAX_GRADE + 1)]++;
+                    // cityFreqArray[flat3d(reg, city, grade, C, MAX_GRADE +
+                    // 1)]++;
+                }
+            }
+        }
+
+#pragma omp for collapse(3) nowait
+        for (int32_t reg = 0; reg < R; reg++) {
+            for (int32_t city = 0; city < C; city++) {
+                for (int32_t grade = 0; grade <= MAX_GRADE; grade++) {
+                    for (int32_t thread = 0; thread < nT; thread++) {
+                        cityFreqArray[flat3d(reg, city, grade, C,
+                                             MAX_GRADE + 1)] +=
+                            threadFreqArray[flat4d(thread, reg, city, grade, R,
+                                                   C, MAX_GRADE + 1)];
+                    }
+                }
             }
         }
     }
+
+    free(threadFreqArray);
 
     return cityFreqArray;
 }
@@ -154,6 +191,7 @@ int64_t *calculateRegionFreqArray(int64_t *cityFreqArray, int32_t R,
     int64_t *regionFreqArray =
         (int64_t *)allocMatrix(R * (MAX_GRADE + 1), sizeof(int64_t));
 
+#pragma omp parallel for collapse(2) reduction(+ : regionFreqArray[:R*(MAX_GRADE+1)])
     for (int32_t reg = 0; reg < R; reg++) {
         for (int32_t city = 0; city < C; city++) {
             for (int32_t grade = 0; grade <= MAX_GRADE; grade++) {
@@ -170,6 +208,7 @@ int64_t *calculateCountryFreqArray(int64_t *regionFreqArray, int32_t R) {
 
     int64_t *countryFreqArray = allocMatrix(MAX_GRADE + 1, sizeof(int64_t));
 
+#pragma omp parallel for reduction(+ : countryFreqArray[:MAX_GRADE + 1])
     for (int32_t reg = 0; reg < R; reg++) {
         for (int32_t grade = 0; grade <= MAX_GRADE; grade++) {
             countryFreqArray[grade] +=
@@ -269,6 +308,7 @@ void printStats(stats **stats, int32_t R, int32_t C) {
 }
 
 int main(void) {
+
     // R × C × A matrix
     int32_t R, C, A, SEED;
     double timeStart, timeEnd;
@@ -285,13 +325,6 @@ int main(void) {
     stats *bestReg = NULL;
 
     int64_t *cityFreqArray = calculateCityFreqArray(infoMatrix, R, C, A);
-    // for (int32_t i = 0; i < R; i++) {
-    //     for (int32_t j = 0; j < C; j++) {
-    //         for (int32_t k = 0; k <= MAX_GRADE; k++) {
-    //             printf("%ld \n", cityFreqArray[i][j][k]);
-    //         }
-    //     }
-    // }
     int64_t *regFreqArray = calculateRegionFreqArray(cityFreqArray, R, C);
     int64_t *countryFreqArray = calculateCountryFreqArray(regFreqArray, R);
 

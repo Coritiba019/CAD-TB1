@@ -308,7 +308,6 @@ void printStats(stats **stats, int32_t R, int32_t C) {
 }
 
 int main(void) {
-
     // R × C × A matrix
     int32_t R, C, A, SEED;
     double timeStart, timeEnd;

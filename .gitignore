@@ -4,3 +4,4 @@ sseq
 spar
 *.o
 .vscode
+*.exe

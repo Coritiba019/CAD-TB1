@@ -339,7 +339,7 @@ int main(void) {
     printf("Melhor cidade: Região %d, Cidade %d\n", bestCity->region,
            bestCity->city);
 
-    printf("Tempo de resposta sem considerar E/S, em segundos: %lfs\n",
+    printf("P: Tempo de resposta sem considerar E/S, em segundos: %lfs\n",
            timeEnd - timeStart);
 
     free(infoMatrix);

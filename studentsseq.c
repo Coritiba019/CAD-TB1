@@ -18,6 +18,9 @@ typedef struct stats {
     int32_t city;
 } stats;
 
+#define flat2d(i, j, Y) ((i) * (Y) + (j))
+#define flat3d(i, j, k, Y, Z) ((i) * (Y) * (Z) + (j) * (Z) + (k))
+
 static const char noMemory[] = "Not enough memory available.";
 
 static const int32_t MAX_GRADE = 100;
@@ -26,7 +29,7 @@ void readConstraints(int32_t *pR, int32_t *pC, int32_t *pA, int32_t *pSEED) {
     scanf(" %d %d %d %d", pR, pC, pA, pSEED);
 }
 
-void *alloc1dMatrix(int32_t x, size_t elemSize) {
+void *allocMatrix(int32_t x, size_t elemSize) {
     void *mat = (void *)calloc(x, elemSize);
 
     if (mat == NULL) {
@@ -37,70 +40,28 @@ void *alloc1dMatrix(int32_t x, size_t elemSize) {
     return mat;
 }
 
-void **alloc2dMatrix(int32_t x, int32_t y, size_t elemSize) {
-    void **mat = (void **)malloc(x * sizeof(void *));
-
-    if (mat == NULL) {
-        fprintf(stderr, noMemory);
-        exit(ENOMEM);
-    }
-
-    for (int32_t i = 0; i < x; i++) {
-        mat[i] = alloc1dMatrix(y, elemSize);
-    }
-    return mat;
-}
-
-void ***alloc3dMatrix(int32_t x, int32_t y, int32_t z, size_t elemSize) {
-    void ***mat = (void ***)malloc(x * sizeof(void **));
-
-    if (mat == NULL) {
-        fprintf(stderr, noMemory);
-        exit(ENOMEM);
-    }
-
-    for (int32_t i = 0; i < x; i++) {
-        mat[i] = alloc2dMatrix(y, z, elemSize);
-    }
-    return mat;
-}
-
-void populateMatrix(int32_t ***matrix, int32_t R, int32_t C, int32_t A) {
+void populateMatrix(int32_t *matrix, int32_t R, int32_t C, int32_t A) {
     // assign values to the allocated memory
     for (int32_t i = 0; i < R; i++) {
         for (int32_t j = 0; j < C; j++) {
             for (int32_t k = 0; k < A; k++) {
-                matrix[i][j][k] = rand() % (MAX_GRADE + 1);
+                matrix[flat3d(i, j, k, C, A)] = rand() % (MAX_GRADE + 1);
             }
         }
     }
 }
 
-void print3dMatrix(int32_t ***mat, int32_t R, int32_t C, int32_t A) {
+void print3dMatrix(int32_t *mat, int32_t R, int32_t C, int32_t A) {
     // print the 3D array
     for (int32_t i = 0; i < R; i++) {
         for (int32_t j = 0; j < C; j++) {
             for (int32_t k = 0; k < A; k++) {
-                printf(" %3d ", mat[i][j][k]);
+                printf(" %3d ", mat[flat3d(i, j, k, C, A)]);
             }
             printf("\n");
         }
         printf("\n");
     }
-}
-
-void free2dMatrix(void **mat, int32_t x) {
-    for (int32_t i = 0; i < x; i++) {
-        free(mat[i]);
-    }
-    free(mat);
-}
-
-void free3dMatrix(void ***mat, int32_t x, int32_t y) {
-    for (int32_t i = 0; i < x; i++) {
-        free2dMatrix(mat[i], y);
-    }
-    free(mat);
 }
 
 double meanFreqArray(int64_t *freqArr, int64_t n) {
@@ -167,19 +128,19 @@ double medianFreqArray(int64_t *freqArr, int64_t n) {
     return n % 2 == 0 ? (botMidGrade + topMidGrade) / 2.0 : (double)topMidGrade;
 }
 
-int64_t ***calculateCityFreqArray(int32_t ***infoMatrix, int32_t R, int32_t C,
-                                  int32_t A) {
+int64_t *calculateCityFreqArray(int32_t *infoMatrix, int32_t R, int32_t C,
+                                int32_t A) {
 
-    int64_t ***cityFreqArray =
-        (int64_t ***)alloc3dMatrix(R, C, MAX_GRADE + 1, sizeof(int64_t));
+    int64_t *cityFreqArray =
+        (int64_t *)allocMatrix(R * C * (MAX_GRADE + 1), sizeof(int64_t));
 
     int32_t grade;
 
     for (int32_t reg = 0; reg < R; reg++) {
         for (int32_t city = 0; city < C; city++) {
             for (int32_t student = 0; student < A; student++) {
-                grade = infoMatrix[reg][city][student];
-                cityFreqArray[reg][city][grade]++;
+                grade = infoMatrix[flat3d(reg, city, student, C, A)];
+                cityFreqArray[flat3d(reg, city, grade, C, MAX_GRADE + 1)]++;
             }
         }
     }
@@ -187,16 +148,17 @@ int64_t ***calculateCityFreqArray(int32_t ***infoMatrix, int32_t R, int32_t C,
     return cityFreqArray;
 }
 
-int64_t **calculateRegionFreqArray(int64_t ***cityFreqArray, int32_t R,
-                                   int32_t C) {
+int64_t *calculateRegionFreqArray(int64_t *cityFreqArray, int32_t R,
+                                  int32_t C) {
 
-    int64_t **regionFreqArray =
-        (int64_t **)alloc2dMatrix(R, MAX_GRADE + 1, sizeof(int64_t));
+    int64_t *regionFreqArray =
+        (int64_t *)allocMatrix(R * (MAX_GRADE + 1), sizeof(int64_t));
 
     for (int32_t reg = 0; reg < R; reg++) {
         for (int32_t city = 0; city < C; city++) {
             for (int32_t grade = 0; grade <= MAX_GRADE; grade++) {
-                regionFreqArray[reg][grade] += cityFreqArray[reg][city][grade];
+                regionFreqArray[flat2d(reg, grade, MAX_GRADE + 1)] +=
+                    cityFreqArray[flat3d(reg, city, grade, C, MAX_GRADE + 1)];
             }
         }
     }
@@ -204,13 +166,14 @@ int64_t **calculateRegionFreqArray(int64_t ***cityFreqArray, int32_t R,
     return regionFreqArray;
 }
 
-int64_t *calculateCountryFreqArray(int64_t **regionFreqArray, int32_t R) {
+int64_t *calculateCountryFreqArray(int64_t *regionFreqArray, int32_t R) {
 
-    int64_t *countryFreqArray = alloc1dMatrix(MAX_GRADE + 1, sizeof(int64_t));
+    int64_t *countryFreqArray = allocMatrix(MAX_GRADE + 1, sizeof(int64_t));
 
     for (int32_t reg = 0; reg < R; reg++) {
         for (int32_t grade = 0; grade <= MAX_GRADE; grade++) {
-            countryFreqArray[grade] += regionFreqArray[reg][grade];
+            countryFreqArray[grade] +=
+                regionFreqArray[flat2d(reg, grade, MAX_GRADE + 1)];
         }
     }
 
@@ -233,14 +196,14 @@ stats *getStatFromFreqArray(int64_t *freqArr, int32_t n) {
     return stat;
 }
 
-void getStats(int32_t R, int32_t C, int32_t A, int64_t ***cityFreqArray,
-              int64_t **regFreqArray, int64_t *countryFreqArray,
+void getStats(int32_t R, int32_t C, int32_t A, int64_t *cityFreqArray,
+              int64_t *regFreqArray, int64_t *countryFreqArray,
               stats **statsVector, stats **bestReg, stats **bestCity) {
     int32_t idx = 0;
     for (int32_t reg = 0; reg < R; reg++) {
         for (int32_t city = 0; city < C; city++) {
-            statsVector[idx] =
-                getStatFromFreqArray(cityFreqArray[reg][city], A);
+            statsVector[idx] = getStatFromFreqArray(
+                &cityFreqArray[flat3d(reg, city, 0, C, MAX_GRADE + 1)], A);
             statsVector[idx]->region = reg;
             statsVector[idx]->city = city;
 
@@ -253,7 +216,8 @@ void getStats(int32_t R, int32_t C, int32_t A, int64_t ***cityFreqArray,
         }
     }
     for (int32_t reg = 0; reg < R; reg++) {
-        statsVector[idx] = getStatFromFreqArray(regFreqArray[reg], A * C);
+        statsVector[idx] = getStatFromFreqArray(
+            &regFreqArray[flat2d(reg, 0, MAX_GRADE + 1)], C * A);
         statsVector[idx]->region = reg;
         statsVector[idx]->city = -1;
 
@@ -312,8 +276,7 @@ int main(void) {
 
     srand(SEED);
 
-    int32_t ***infoMatrix =
-        (int32_t ***)alloc3dMatrix(R, C, A, sizeof(int32_t));
+    int32_t *infoMatrix = (int32_t *)allocMatrix(R * C * A, sizeof(int32_t));
     populateMatrix(infoMatrix, R, C, A);
     // print3dMatrix(infoMatrix, R, C, A);
 
@@ -321,11 +284,18 @@ int main(void) {
     stats *bestCity = NULL;
     stats *bestReg = NULL;
 
-    int64_t ***cityFreqArray = calculateCityFreqArray(infoMatrix, R, C, A);
-    int64_t **regFreqArray = calculateRegionFreqArray(cityFreqArray, R, C);
+    int64_t *cityFreqArray = calculateCityFreqArray(infoMatrix, R, C, A);
+    // for (int32_t i = 0; i < R; i++) {
+    //     for (int32_t j = 0; j < C; j++) {
+    //         for (int32_t k = 0; k <= MAX_GRADE; k++) {
+    //             printf("%ld \n", cityFreqArray[i][j][k]);
+    //         }
+    //     }
+    // }
+    int64_t *regFreqArray = calculateRegionFreqArray(cityFreqArray, R, C);
     int64_t *countryFreqArray = calculateCountryFreqArray(regFreqArray, R);
 
-    stats **statsVec = alloc1dMatrix((R * C) + R + 1, sizeof(stats *));
+    stats **statsVec = allocMatrix((R * C) + R + 1, sizeof(stats *));
     getStats(R, C, A, cityFreqArray, regFreqArray, countryFreqArray, statsVec,
              &bestReg, &bestCity);
 
@@ -340,10 +310,13 @@ int main(void) {
     printf("Tempo de resposta sem considerar E/S, em segundos: %lfs\n",
            timeEnd - timeStart);
 
-    free3dMatrix((void ***)infoMatrix, R, C);
-    free3dMatrix((void ***)cityFreqArray, R, C);
-    free2dMatrix((void **)regFreqArray, R);
+    free(infoMatrix);
+    free(cityFreqArray);
+    free(regFreqArray);
     free(countryFreqArray);
-    free2dMatrix((void **)statsVec, (R * C) + R + 1);
+    for (int32_t i = 0; i < (R * C) + R + 1; i++) {
+        free(statsVec[i]);
+    }
+    free(statsVec);
     return 0;
 }

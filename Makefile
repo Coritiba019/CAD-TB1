@@ -49,5 +49,8 @@ valgrindSeq: debugSeq
 testSeq: seq
 	./$(SEQ_TARGET) < tests/1.in
 
+testPar: par
+	./$(PAR_TARGET) < tests/1.in
+
 zip:
 	zip -r main.zip README.md Makefile *.h *.c

@@ -53,4 +53,4 @@ testPar: par
 	./$(PAR_TARGET) < tests/1.in
 
 zip:
-	zip -r main.zip studentspar.c studentsseq.c respostas.pdf
+	zip -r TA04.zip studentspar.c studentsseq.c respostas.pdf

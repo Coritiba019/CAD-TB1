@@ -12,4 +12,4 @@ outSeq
 outPar
 timeSeq
 timePar
-runs.json
+*.json
